@@ -1,151 +1,26 @@
-body {
-    margin: 0;
-    overflow: hidden;
-    background-color: #181818; /* ダークな背景 */
-    color: #eee;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    font-family: 'Noto Sans JP', sans-serif;
-}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暗算game</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="quiz-container">
+        <h1>試練の計算</h1>
+        <p id="problem-text"></p>
+        <input type="number" id="answer-input" placeholder="答えを入力">
+        <button id="submit-answer">解答する</button>
+        <p id="feedback-text"></p>
+    </div>
 
-#quiz-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(40, 40, 40, 0.9);
-    padding: 30px 40px;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    text-align: center;
-    z-index: 100; /* ゲームエリアより手前に表示 */
-    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
+    <div class="container">
+        <div id="game-area">
+            </div>
+    </div>
 
-#quiz-container.hidden {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-    pointer-events: none;
-}
-
-#quiz-container h1 {
-    margin-top: 0;
-    font-size: 2.2em;
-    color: #ffcc00; /* 目立つ色 */
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-}
-
-#problem-text {
-    font-size: 2.5em;
-    margin: 20px 0;
-    font-weight: 700;
-}
-
-#answer-input {
-    padding: 10px 15px;
-    font-size: 1.2em;
-    border: 2px solid #555;
-    background-color: #222;
-    color: #eee;
-    border-radius: 5px;
-    margin-right: 10px;
-    text-align: center;
-    width: 120px;
-}
-
-#submit-answer {
-    padding: 10px 20px;
-    font-size: 1.2em;
-    background-color: #ffcc00;
-    color: #181818;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 700;
-    transition: background-color 0.3s ease;
-}
-
-#submit-answer:hover {
-    background-color: #e6b800;
-}
-
-#feedback-text {
-    margin-top: 15px;
-    font-size: 1.1em;
-    min-height: 1.5em; /* フィードバック文言のスペース確保 */
-}
-
-.container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-}
-
-#game-area {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* 初期状態では操作不可にする */
-    /* cursor: crosshair; */ /* 石増殖が始まってから有効にするなど */
-}
-
-.stone {
-    position: absolute;
-    width: 40px;
-    height: auto;
-    user-select: none;
-    pointer-events: none;
-    opacity: 0; /* 初期状態は見えないように */
-    animation: fadeInAndSwirl 1s ease-out forwards, subtleRotate 10s linear infinite alternate;
-}
-
-@keyframes fadeInAndSwirl {
-    0% {
-        opacity: 0;
-        transform: scale(0.5) rotate(0deg) translate(0, 0);
-    }
-    100% {
-        opacity: 0.8;
-        transform: scale(1) rotate(calc(var(--random-angle) * 1deg)) translate(calc(var(--random-tx) * 1px), calc(var(--random-ty) * 1px));
-    }
-}
-
-
-@keyframes subtleRotate {
-    from {
-        transform: rotate(-2deg) translate(calc(var(--random-tx) * 1px), calc(var(--random-ty) * 1px));
-    }
-    to {
-        transform: rotate(2deg) translate(calc(var(--random-tx) * 1px), calc(var(--random-ty) * 1px));
-    }
-}
-
-.nandeya {
-    position: absolute;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 2.5em;
-    color: #eee;
-    user-select: none;
-    pointer-events: none;
-    font-weight: 700;
-    opacity: 0; /* 初期状態は見えないように */
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    letter-spacing: 0.1em;
-    animation: fadeInNandeya 0.8s ease-out forwards;
-}
-
-@keyframes fadeInNandeya {
-    0% {
-        opacity: 0;
-        transform: scale(0.7) rotate(-10deg);
-    }
-    100% {
-        opacity: 0.7;
-        transform: scale(1) rotate(calc(var(--random-nandeya-angle) * 1deg));
-    }
-}
+    <script src="script.js"></script>
+</body>
+</html>
