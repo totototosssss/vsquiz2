@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const stoneImageSrc = 'stone.png';
     const nandeyaTextContent = 'なんでや。';
-    const incorrectSoundSrc = 'incorrect_sound.mp3'; // このサウンドファイルを用意してください
+    const incorrectSoundSrc = 'maou_46_yoake_no_highway.mp3'; // このサウンドファイルを用意してください
 
     let currentProblem = { num1: 0, num2: 0, answer: 0 };
     let penaltyActive = false; // 不正解後は true になり、戻れなくなるフラグ
