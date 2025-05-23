@@ -9,7 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Configuration ---
     const STONE_IMAGE_SRC = 'stone.png';
-    const NANDEYA_TEXT_CONTENT = 'なんでや。';
+    //const NANDEYA_TEXT_CONTENT = 'なんでや。';
+    const NANDEYA_TEXT_CONTENT = '相当偏差値の高い高校（身の丈に合ってない）に通っています。
+高三なのですが未だにアルファベットが読めないことやadhdっぽいことに悩んで親に土下座してwais受けさせてもらいました。
+知覚推理144
+言語理解142
+ワーキングメモリ130
+処理速度84でした。　
+総合は覚えてないですが多分139とかだったはずです。
+ウィスクの年齢なのにウェイス受けさせられた。なんでや';
     const INCORRECT_SOUND_SOURCES = [
         'maou_46_yoake_no_highway.mp3',
         'maou_bgm_cyber45.mp3',
