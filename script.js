@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Configuration ---
     const STONE_IMAGE_SRC = 'stone.png';
+    // ↓↓↓ この長い文字列の定義が13行目あたりに来るはずです。特に注意してください！ ↓↓↓
     const LONG_NANDEYA_TEXT_CONTENT = '相当偏差値の高い高校（身の丈に合ってない）に通っています。高三なのですが未だにアルファベットが読めないことやadhdっぽいことに悩んで親に土下座してwais受けさせてもらいました。知覚推理144言語理解142ワーキングメモリ130処理速度84でした。　総合は覚えてないですが多分139とかだったはずです。ウィスクの年齢なのにウェイス受けさせられた。なんでや';
-    let nandeyaPhrases = []; // 分割されたテキストを格納
+    let nandeyaPhrases = [];
 
     const INCORRECT_SOUND_SOURCES = [
         'maou_46_yoake_no_highway.mp3',
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_ELEMENTS_ON_SCREEN = 180;
     const ELEMENT_SPAWN_INTERVAL_MS = 110;
     const STONE_LIFESPAN_MS = 1800;
-    const NANDEYA_LIFESPAN_MS = 2200; // 長文なので少し長めに表示
+    const NANDEYA_LIFESPAN_MS = 2200;
     const MAX_PRACTICAL_DIGITS = 10;
 
     // --- Game State ---
@@ -35,40 +36,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Text Processing ---
     function prepareNandeyaPhrases() {
-        // 「。」で分割し、空でない文字列を配列に格納。各文の末尾に「。」を（あれば）保持。
-        // 長文の最後に「なんでや」が単独である場合も考慮。
         const sentences = LONG_NANDEYA_TEXT_CONTENT.split('。');
         nandeyaPhrases = [];
         for (let i = 0; i < sentences.length; i++) {
             let sentence = sentences[i].trim();
-            if (sentence.length === 0 && i === sentences.length -1 && sentences.length > 1) { // 最後の空要素（「。」で終わる場合）
+            if (sentence.length === 0 && i === sentences.length - 1 && sentences.length > 1) {
                 continue;
             }
-            if (i < sentences.length - 1 || LONG_NANDEYA_TEXT_CONTENT.endsWith('。')) { // 最後の要素でなく、かつ元文が「。」で終わるなら「。」をつける
-                if(sentence.length > 0 && !sentence.endsWith("なんでや")) sentence += '。';
-                else if (sentence.length > 0 && sentence.endsWith("なんでや") && sentence !== "なんでや") sentence += '。'; // 「〜なんでや。」の場合
+            if (i < sentences.length - 1 || LONG_NANDEYA_TEXT_CONTENT.endsWith('。')) {
+                if (sentence.length > 0 && !sentence.endsWith("なんでや")) sentence += '。';
+                else if (sentence.length > 0 && sentence.endsWith("なんでや") && sentence !== "なんでや") sentence += '。';
             }
 
-            if (sentence === "なんでや。" && nandeyaPhrases.length > 0 && nandeyaPhrases[nandeyaPhrases.length -1].endsWith("なんでや。")) {
-                 // 連続する「なんでや。」を避ける（分割の仕方による）
+            if (sentence === "なんでや。" && nandeyaPhrases.length > 0 && nandeyaPhrases[nandeyaPhrases.length - 1].endsWith("なんでや。")) {
+                // Avoid consecutive "なんでや。"
             } else if (sentence.length > 0) {
-                 nandeyaPhrases.push(sentence);
+                nandeyaPhrases.push(sentence);
             }
         }
-        // もし分割後何もなければデフォルト値
         if (nandeyaPhrases.length === 0) {
-            nandeyaPhrases.push('なんでや。');
+            nandeyaPhrases.push('なんでや。'); // Default fallback
         }
         console.log("分割された「なんでや」フレーズ:", nandeyaPhrases);
     }
-
 
     // --- Initialization ---
     function initGame() {
         penaltyActive = false;
         currentLevel = 1;
         correctAnswersInRow = 0;
-        prepareNandeyaPhrases(); // 「なんでや」テキストを準備
+        prepareNandeyaPhrases();
 
         quizContainer.classList.remove('hidden');
         problemText.style.animation = 'none';
@@ -77,11 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
             span.style.animation = 'none';
         });
 
-        void quizContainer.offsetWidth;
+        void quizContainer.offsetWidth; // Reflow to reset animations
 
         problemText.style.animation = '';
         document.getElementById('sub-title').style.animation = '';
-         document.getElementById('game-title').querySelectorAll('span').forEach(span => {
+        document.getElementById('game-title').querySelectorAll('span').forEach(span => {
             span.style.animation = '';
         });
 
@@ -119,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentProblem.num2 = getRandomBigIntByDigits(num2Digits);
 
         if (num1Digits !== num2Digits && Math.random() < 0.5) {
-           [currentProblem.num1, currentProblem.num2] = [currentProblem.num2, currentProblem.num1];
+            [currentProblem.num1, currentProblem.num2] = [currentProblem.num2, currentProblem.num1];
         }
 
         currentProblem.answer = currentProblem.num1 * currentProblem.num2;
@@ -135,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (digits <= 0) return 0n;
         if (digits === 1) return BigInt(Math.floor(Math.random() * 9) + 1);
 
-        let randomNumStr = (Math.floor(Math.random() * 9) + 1).toString();
+        let randomNumStr = (Math.floor(Math.random() * 9) + 1).toString(); // First digit is 1-9
         for (let i = 1; i < digits; i++) {
             randomNumStr += Math.floor(Math.random() * 10).toString();
         }
@@ -191,10 +188,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (penaltyActive) return;
         penaltyActive = true;
         quizContainer.classList.add('hidden');
-        playAggressiveSoundScape(INCORRECT_SOUND_SOURCES.length * 2, 90);
+        playAggressiveSoundScape(INCORRECT_SOUND_SOURCES.length * 2, 90); // Play more sounds, shorter interval
 
         const initialStoneBurst = 40;
-        const initialNandeyaBurst = nandeyaPhrases.length > 0 ? Math.min(15, nandeyaPhrases.length * 2) : 10; // 分割数に応じてバースト
+        const initialNandeyaBurst = nandeyaPhrases.length > 0 ? Math.min(15, nandeyaPhrases.length * 2) : 10;
 
         for (let i = 0; i < initialStoneBurst; i++) createStoneElement();
         for (let i = 0; i < initialNandeyaBurst; i++) {
@@ -206,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             elementSpawnIntervalId = setInterval(() => {
                 if (activeElements.length < MAX_ELEMENTS_ON_SCREEN) {
                     if (Math.random() < 0.8) createStoneElement(true);
-                    if (Math.random() < 0.35 && nandeyaPhrases.length > 0) { // 出現率少し上げる
+                    if (Math.random() < 0.25 && nandeyaPhrases.length > 0) {
                         const phrase = nandeyaPhrases[Math.floor(Math.random() * nandeyaPhrases.length)];
                         createNandeyaElement(phrase, true);
                     }
@@ -224,12 +221,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Playing sound: ${soundSrc} (attempt ${i + 1}/${numberOfSoundsToPlay})`);
                 try {
                     const audio = new Audio(soundSrc);
-                    audio.volume = Math.random() * 0.3 + 0.6;
+                    audio.volume = Math.random() * 0.35 + 0.55; // Volume: 0.55 to 0.9
 
                     const playPromise = audio.play();
                     if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.error(`Error playing sound ${soundSrc} (Promise):`, error);
+                        playPromise.then(_ => {
+                            // console.log(`Successfully played: ${soundSrc}`); // Optional: reduce console noise
+                        })
+                        .catch(error => {
+                            console.error(`Error playing sound ${soundSrc} (Promise):`, error.name, error.message);
                         });
                     }
                 } catch (e) {
@@ -265,20 +265,19 @@ document.addEventListener('DOMContentLoaded', () => {
         addElementToManager(stone, STONE_LIFESPAN_MS + Math.random() * 500);
     }
 
-    function createNandeyaElement(textToShow = "なんでや。", isContinuous = false) { // デフォルトテキスト追加
+    function createNandeyaElement(textToShow = "なんでや。", isContinuous = false) {
         const nandeya = document.createElement('div');
-        nandeya.textContent = textToShow; // 引数で受け取ったテキストを表示
+        nandeya.textContent = textToShow;
         nandeya.classList.add('nandeya');
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        // テキストの長さに応じてフォントサイズを少し調整（オプション）
+
         let fontSizeFactor = 1.0;
-        if (textToShow.length > 15) fontSizeFactor = 0.8;
-        if (textToShow.length > 30) fontSizeFactor = 0.7;
+        if (textToShow.length > 20) fontSizeFactor = 0.9; // Adjust for longer phrases
+        if (textToShow.length > 40) fontSizeFactor = 0.8;
 
-        const baseFontSize = 2.8 * fontSizeFactor; // rem
-        const randomSizeFactor = Math.random() * 0.8 + (isContinuous ? 0.5 : 0.7);
-
+        const baseFontSize = 2.8 * fontSizeFactor;
+        const randomSizeFactor = Math.random() * 1.0 + (isContinuous ? 0.6 : 0.8);
 
         nandeya.style.fontSize = `${baseFontSize * randomSizeFactor}rem`;
         nandeya.style.setProperty('--n-start-x', `${Math.random() * vw * 0.4 - vw * 0.2}px`);
@@ -286,16 +285,16 @@ document.addEventListener('DOMContentLoaded', () => {
         nandeya.style.setProperty('--n-start-rotate-y', `${Math.random() * 100 - 50}deg`);
         nandeya.style.setProperty('--n-end-x', `${Math.random() * vw * 0.7 - vw * 0.35}px`);
         nandeya.style.setProperty('--n-end-y', `${Math.random() * vh * 0.7 - vh * 0.35}px`);
-        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.4 + 0.6}`);
+        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.5 + 0.7}`);
         nandeya.style.setProperty('--n-end-rotate-x', `${Math.random() * 40 - 20}deg`);
         nandeya.style.setProperty('--n-end-rotate-y', `${Math.random() * (isContinuous ? 70 : 150) - (isContinuous ? 35 : 75)}deg`);
-        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.3 + 0.55}`); // 少し不透明度を上げる
-        nandeya.style.zIndex = `${Math.floor(Math.random() * 20)}`; // Z-index範囲拡大
-        nandeya.style.left = `${vw/2 + (Math.random() - 0.5) * 100}px`; // 初期位置のばらつきを増やす
-        nandeya.style.top = `${vh/2 + (Math.random() - 0.5) * 100}px`;
+        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.3 + 0.55}`);
+        nandeya.style.zIndex = `${Math.floor(Math.random() * 15)}`;
+        nandeya.style.left = `${vw/2 + (Math.random() - 0.5) * 80}px`;
+        nandeya.style.top = `${vh/2 + (Math.random() - 0.5) * 80}px`;
 
         chaosContainer.appendChild(nandeya);
-        addElementToManager(nandeya, NANDEYA_LIFESPAN_MS + Math.random() * 600);
+        addElementToManager(nandeya, NANDEYA_LIFESPAN_MS + Math.random() * 400);
     }
 
     function addElementToManager(element, lifespan) {
