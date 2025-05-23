@@ -1,151 +1,215 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const gameArea = document.getElementById('game-area');
+    const mainContainer = document.getElementById('main-container');
     const quizContainer = document.getElementById('quiz-container');
+    const gameTitle = document.getElementById('game-title'); // アニメーション用
+    const subTitle = document.getElementById('sub-title');   // アニメーション用
     const problemText = document.getElementById('problem-text');
     const answerInput = document.getElementById('answer-input');
     const submitButton = document.getElementById('submit-answer');
     const feedbackText = document.getElementById('feedback-text');
+    const chaosContainer = document.getElementById('chaos-container');
 
     const stoneImageSrc = 'stone.png';
     const nandeyaTextContent = 'なんでや。';
-    const incorrectSoundSrc = 'maou_46_yoake_no_highway.mp3'; // このサウンドファイルを用意してください
+    // 複数の激しいサウンドを用意し、ランダムに再生する (ユーザーに用意してもらう)
+    const incorrectSoundSources = [
+        'maou_46_yoake_no_highway.mp3', // 重低音の爆発音
+        'maou_46_yoake_no_highway.mp3',// グリッチノイズ
+        'maou_46_yoake_no_highway.mp3',// 甲高い叫び声風 (なんでやボイスでも可)
+        'maou_46_yoake_no_highway.mp3' // 金属的な衝撃音
+    ];
+    // ↑これらのファイルを用意するか、既存のincorrect_sound.mp3を複数回使うなどで調整
 
     let currentProblem = { num1: 0, num2: 0, answer: 0 };
-    let penaltyActive = false; // 不正解後は true になり、戻れなくなるフラグ
-    let spawnInterval = null;
+    let penaltyActive = false;
+    let elementSpawnInterval = null;
+    const activeElements = []; // 画面上の要素を管理する配列
+    const MAX_ELEMENTS_ON_SCREEN = 200; // 同時表示数の上限 (視認性とパフォーマンスのため)
 
+    // --- 初期化とUIアニメーション ---
+    function initUIAnimations() {
+        // タイトル文字アニメーションはCSSで定義済み
+        // サブタイトルと問題文の出現はCSSアニメーションで制御
+        problemText.style.opacity = '0'; // JSでリセット用
+        subTitle.style.opacity = '0'; // JSでリセット用
+        // 実行タイミングはCSSアニメーションの遅延に依存
+    }
+
+    // --- クイズロジック ---
     function generateProblem() {
         currentProblem.num1 = Math.floor(Math.random() * 90) + 10;
         currentProblem.num2 = Math.floor(Math.random() * 90) + 10;
         currentProblem.answer = currentProblem.num1 * currentProblem.num2;
+
+        // 問題文のアニメーションリセットと再開
+        problemText.style.animation = 'none';
+        void problemText.offsetWidth; // 強制リフロー
+        problemText.style.animation = '';
+        problemText.style.opacity = '0'; // アニメーション開始前の状態
         problemText.textContent = `${currentProblem.num1} × ${currentProblem.num2} = ?`;
+
         answerInput.value = '';
-        feedbackText.textContent = ''; // フィードバックをクリア
+        feedbackText.textContent = '';
         answerInput.focus();
     }
 
     function checkAnswer() {
-        if (penaltyActive) return; // 間違えた後は何も受け付けない
+        if (penaltyActive) return;
 
         const userAnswer = parseInt(answerInput.value);
         if (isNaN(userAnswer)) {
-            feedbackText.textContent = '数値を入力してください！';
-            feedbackText.style.color = '#ff8080'; // 少し優しい赤
+            feedbackText.textContent = '有効な数値を入力せよ。';
+            feedbackText.style.color = 'var(--error-color)';
             return;
         }
 
         if (userAnswer === currentProblem.answer) {
-            feedbackText.textContent = '正解！'; // メッセージはシンプルに
-            feedbackText.style.color = '#80ff80'; // 少し優しい緑
-            // 正解したらすぐに次の問題 (遅延なし)
-            generateProblem();
+            feedbackText.textContent = '正解。次へ。';
+            feedbackText.style.color = 'var(--success-color)';
+            // アニメーションを挟むならここに。今回は即時。
+            setTimeout(generateProblem, 300); // わずかなウェイトでフィードバックを見せる
         } else {
-            feedbackText.textContent = `不正解！答えは ${currentProblem.answer} でした。残念でしたね…。`;
-            feedbackText.style.color = '#ff6666'; // しっかり赤く
+            feedbackText.textContent = `否。解は ${currentProblem.answer} 。…何故だ。`;
+            feedbackText.style.color = 'var(--error-color)';
             triggerPenalty();
         }
     }
 
+    // --- ペナルティ（カオス）演出 ---
     function triggerPenalty() {
-        if (penaltyActive) return; // 念のため二重呼び出し防止
-        penaltyActive = true; // これでクイズ操作は完全に不能に
+        if (penaltyActive) return;
+        penaltyActive = true;
 
-        // クイズUIを非表示にし、二度と操作できないようにする
         quizContainer.classList.add('hidden');
-        // submitButton.disabled = true; // ボタンも無効化
-        // answerInput.disabled = true;  // 入力欄も無効化
 
-        // 音声を激しく！ (短い間隔で複数回再生)
-        // 注意: ブラウザや設定によっては、短時間に大量の音声を再生しようとするとブロックされるか、
-        //       音が途切れたり、予期せぬ動作をする可能性があります。
-        let soundCount = 0;
-        const maxSounds = 5; // 同時に鳴らす音の目安 (激しさとパフォーマンスのバランス)
-        const soundInterval = 80; // 音を鳴らす間隔 (ms)
+        // 激しいサウンドスケープを生成
+        playAggressiveSoundScape(5, 70); // 5つの音を70ms間隔で再生開始
 
-        function playAggressiveSound() {
-            try {
-                const audio = new Audio(incorrectSoundSrc);
-                audio.volume = 1.0; // 最大音量
-                // ピッチを少しランダムに変えて重ねるとよりカオスに (ブラウザサポートに注意)
-                // audio.preservesPitch = false; // Firefoxではデフォルトtrue
-                // audio.playbackRate = 1 + (Math.random() - 0.5) * 0.4; // 0.8 ~ 1.2倍速
-
-                audio.play().catch(error => {
-                    console.warn("音声の自動再生に失敗しました:", error);
-                });
-                soundCount++;
-                if (soundCount < maxSounds) {
-                    setTimeout(playAggressiveSound, soundInterval);
-                }
-            } catch (e) {
-                console.error("音声ファイルの読み込みまたは再生でエラー:", e);
-            }
+        // 初期バースト
+        for (let i = 0; i < 30; i++) { // 石は多めに、インパクト重視
+            createStoneElement();
         }
-        playAggressiveSound(); // 最初の音を再生開始
-
-        // 石と「なんでや。」の発生開始
-        // 初期バースト (石は多め、「なんでや。」は識別できる程度に)
-        for (let i = 0; i < 100; i++) { // 石の初期バースト
-            createStone(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
-        }
-        for (let i = 0; i < 10; i++) { // 「なんでや。」の初期バースト (減らした)
-            createNandeya();
+        for (let i = 0; i < 8; i++) { // 「なんでや。」は視認性重視で少なめ
+            createNandeyaElement();
         }
 
-        if (!spawnInterval) {
-            spawnInterval = setInterval(() => {
-                // penaltyActiveがtrueの間だけ実行される (実質無限ループ)
-                for (let j = 0; j < 8; j++) { // 石の継続生成 (少し減らして様子見)
-                    createStone(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+        // 継続的な要素生成
+        if (!elementSpawnInterval) {
+            elementSpawnInterval = setInterval(() => {
+                if (activeElements.length < MAX_ELEMENTS_ON_SCREEN) {
+                    if (Math.random() < 0.7) createStoneElement(); // 石の出現率高め
+                    if (Math.random() < 0.15) createNandeyaElement(); // 「なんでや。」は控えめに
                 }
-                // 「なんでや。」の継続生成 (さらに減らし、出現率も調整)
-                if (Math.random() < 0.2) { // 20%の確率で「なんでや。」を追加
-                     createNandeya();
-                }
-                removeOldElementsIfNeeded();
-            }, 40); // 生成間隔 (少し長くして様子見)
+                manageActiveElements(); // 古い要素を削除
+            }, 100); // 生成間隔
         }
     }
 
-    function createStone(x, y) {
+    function playAggressiveSoundScape(numberOfSounds, interval) {
+        for (let i = 0; i < numberOfSounds; i++) {
+            setTimeout(() => {
+                try {
+                    // 用意したサウンドソースからランダムに選択
+                    const randomSoundSrc = incorrectSoundSources[Math.floor(Math.random() * incorrectSoundSources.length)];
+                    const audio = new Audio(randomSoundSrc || incorrectSoundSources[0]); // フォールバック
+                    audio.volume = Math.random() * 0.4 + 0.6; // 0.6 〜 1.0 のランダムな音量
+                    
+                    // パンニング (左右の定位) もランダムに
+                    const panner = new AudioContext().createStereoPanner();
+                    const source = new AudioContext().createMediaElementSource(audio);
+                    source.connect(panner);
+                    panner.connect(new AudioContext().destination);
+                    panner.pan.value = Math.random() * 1.8 - 0.9; // -0.9 〜 0.9 (ほぼ左右いっぱい)
+
+
+                    audio.play().catch(e => console.warn("Sound playback failed:", e));
+                } catch (e) { console.error("AudioContext/Panner error:", e); /* Safariなど一部ブラウザでエラーになる可能性 */ }
+            }, i * interval);
+        }
+    }
+
+
+    function createStoneElement() {
         const stone = document.createElement('img');
         stone.src = stoneImageSrc;
         stone.classList.add('stone');
-        stone.style.setProperty('--random-angle', Math.random() * 360);
-        stone.style.setProperty('--random-tx', (Math.random() - 0.5) * 180);
-        stone.style.setProperty('--random-ty', (Math.random() - 0.5) * 180);
-        const size = Math.random() * 50 + 25;
-        stone.style.width = `${size}px`;
-        stone.style.left = `${x - size / 2}px`;
-        stone.style.top = `${y - size / 2}px`;
-        gameArea.appendChild(stone);
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // CSS変数でアニメーションパラメータを渡す
+        stone.style.setProperty('--start-x', `${Math.random() * vw - vw / 2}px`); // 画面中央付近から広がる
+        stone.style.setProperty('--start-y', `${Math.random() * vh - vh / 2}px`);
+        stone.style.setProperty('--end-x', `${Math.random() * vw * 1.4 - vw * 0.2}px`); // 画面外にも飛んでいく
+        stone.style.setProperty('--end-y', `${Math.random() * vh * 1.4 - vh * 0.2}px`);
+        stone.style.setProperty('--end-scale', `${Math.random() * 1.5 + 0.5}`); // サイズ変化
+        stone.style.setProperty('--end-rotate', `${Math.random() * 1080 - 540}deg`); // 回転数
+        stone.style.setProperty('--end-opacity', `${Math.random() * 0.4 + 0.3}`); // 最終的な透明度
+
+        // 初期位置は画面中央付近に設定 (CSSアニメーションの translate は相対的なので)
+        stone.style.left = `${vw/2}px`;
+        stone.style.top = `${vh/2}px`;
+
+
+        chaosContainer.appendChild(stone);
+        addElementToManager(stone, 1500); // 1.5秒後に消える
     }
 
-    function createNandeya() {
+    function createNandeyaElement() {
         const nandeya = document.createElement('div');
         nandeya.textContent = nandeyaTextContent;
         nandeya.classList.add('nandeya');
-        nandeya.style.setProperty('--random-nandeya-angle', Math.random() * 50 - 25);
-        const sizeFactor = Math.random() * 0.5 + 0.8; // サイズのばらつきを少し抑える
-        nandeya.style.fontSize = `${2.8 * sizeFactor}em`; // CSSの基本サイズに係数をかける
-        nandeya.style.left = `${Math.random() * 100}vw`;
-        nandeya.style.top = `${Math.random() * 100}vh`;
-        nandeya.style.zIndex = Math.floor(Math.random() * 10); // 重なりの順番を少しランダムに
-        gameArea.appendChild(nandeya);
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const baseFontSize = 3; // rem
+        const randomSizeFactor = Math.random() * 1.5 + 0.8; // 0.8x ~ 2.3x
+
+        nandeya.style.fontSize = `${baseFontSize * randomSizeFactor}rem`;
+
+        // アニメーションパラメータ
+        nandeya.style.setProperty('--n-start-x', `${Math.random() * vw - vw/2}px`);
+        nandeya.style.setProperty('--n-start-y', `${Math.random() * vh - vh/2}px`);
+        nandeya.style.setProperty('--n-end-x', `${Math.random() * vw - vw/2}px`); // 最終位置は中央付近に留まる感じ
+        nandeya.style.setProperty('--n-end-y', `${Math.random() * vh - vh/2}px`);
+        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.5 + 0.8}`);
+        nandeya.style.setProperty('--n-end-rotate', `${Math.random() * 60 - 30}deg`);
+        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.5 + 0.4}`);
+        nandeya.style.zIndex = `${Math.floor(Math.random() * 5)}`; // 重なり順
+
+        // 初期位置
+        nandeya.style.left = `${vw/2}px`;
+        nandeya.style.top = `${vh/2}px`;
+
+        chaosContainer.appendChild(nandeya);
+        addElementToManager(nandeya, 1200); // 1.2秒後に消える (石より少し早い)
     }
 
-    function removeOldElementsIfNeeded() {
-        const maxElements = 1000; // 最大要素数を調整 (以前より減らして識別しやすく)
-        while (gameArea.children.length > maxElements) {
-            if (gameArea.firstChild) {
-                 gameArea.removeChild(gameArea.firstChild);
-            } else {
-                break;
+    function addElementToManager(element, lifespan) {
+        activeElements.push(element);
+        setTimeout(() => {
+            if (element.parentElement) {
+                element.parentElement.removeChild(element);
+            }
+            const index = activeElements.indexOf(element);
+            if (index > -1) {
+                activeElements.splice(index, 1);
+            }
+        }, lifespan);
+    }
+
+    function manageActiveElements() {
+        // MAX_ELEMENTS_ON_SCREEN を超えている場合、古いものから削除
+        // (addElementToManager の lifespan で自動削除されるので、この関数は積極的な削除用)
+        while (activeElements.length > MAX_ELEMENTS_ON_SCREEN) {
+            const oldElement = activeElements.shift(); // 配列の先頭（一番古い）
+            if (oldElement && oldElement.parentElement) {
+                oldElement.parentElement.removeChild(oldElement);
             }
         }
     }
 
-    // イベントリスナー
+    // --- イベントリスナー ---
     submitButton.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
@@ -153,19 +217,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 初期化
+    // --- 初期化 ---
     function initGame() {
-        penaltyActive = false; // ゲーム開始時はペナルティ解除
+        penaltyActive = false;
         quizContainer.classList.remove('hidden');
-        submitButton.disabled = false;
-        answerInput.disabled = false;
-        gameArea.innerHTML = ''; // ゲームエリアをクリア
-        if (spawnInterval) { // もし既存のインターバルがあればクリア
-            clearInterval(spawnInterval);
-            spawnInterval = null;
+        // UIアニメーションの初期化
+        initUIAnimations();
+
+        chaosContainer.innerHTML = ''; // カオスエリアをクリア
+        activeElements.length = 0; // 管理配列もクリア
+        if (elementSpawnInterval) {
+            clearInterval(elementSpawnInterval);
+            elementSpawnInterval = null;
         }
         generateProblem();
     }
 
-    initGame(); // ゲーム開始
+    initGame();
 });
