@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // アニメーションを挟むならここに。今回は即時。
             setTimeout(generateProblem, 300); // わずかなウェイトでフィードバックを見せる
         } else {
-            feedbackText.textContent = `否。解は ${currentProblem.answer} 。…何故だ。`;
+            feedbackText.textContent = `解は ${currentProblem.answer} 。…何故だ。🤡`;
             feedbackText.style.color = 'var(--error-color)';
             triggerPenalty();
         }
