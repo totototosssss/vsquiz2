@@ -1,107 +1,185 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const mainContainer = document.getElementById('main-container');
+    // --- DOM Elements ---
     const quizContainer = document.getElementById('quiz-container');
-    const gameTitle = document.getElementById('game-title'); // アニメーション用
-    const subTitle = document.getElementById('sub-title');   // アニメーション用
     const problemText = document.getElementById('problem-text');
     const answerInput = document.getElementById('answer-input');
     const submitButton = document.getElementById('submit-answer');
     const feedbackText = document.getElementById('feedback-text');
     const chaosContainer = document.getElementById('chaos-container');
 
-    const stoneImageSrc = 'stone.png';
-    const nandeyaTextContent = 'なんでや。';
-    // 複数の激しいサウンドを用意し、ランダムに再生する (ユーザーに用意してもらう)
-    const incorrectSoundSources = [
-        'maou_46_yoake_no_highway.mp3', // 重低音の爆発音
-        'maou_46_yoake_no_highway.mp3',// グリッチノイズ
-        'maou_bgm_cyber45.mp3',// 甲高い叫び声風 (なんでやボイスでも可)
-        'maou_bgm_cyber45.mp3' // 金属的な衝撃音
+    // --- Game Configuration ---
+    const STONE_IMAGE_SRC = 'stone.png'; // この画像ファイルが必要です
+    const NANDEYA_TEXT_CONTENT = 'なんでや。';
+    const INCORRECT_SOUND_SOURCES = [ // 指定された音声ファイル
+        'maou_46_yoake_no_highway.mp3',
+        'maou_bgm_cyber45.mp3',
+        'maou_46_yoake_no_highway.mp3', // 交互になるように再度追加
+        'maou_bgm_cyber45.mp3'
     ];
-    // ↑これらのファイルを用意するか、既存のincorrect_sound.mp3を複数回使うなどで調整
+    const CORRECT_ANSWERS_TO_LEVEL_UP = 2;
+    const MAX_ELEMENTS_ON_SCREEN = 190; // 若干調整
+    const ELEMENT_SPAWN_INTERVAL_MS = 110; // 若干調整
+    const STONE_LIFESPAN_MS = 1800;
+    const NANDEYA_LIFESPAN_MS = 1600;
+    const MAX_PRACTICAL_DIGITS = 10; // これ以上は入力・表示が困難なため実用的な上限
 
-    let currentProblem = { num1: 0, num2: 0, answer: 0 };
+    // --- Game State ---
+    let currentProblem = { num1: 0n, num2: 0n, answer: 0n };
     let penaltyActive = false;
-    let elementSpawnInterval = null;
-    const activeElements = []; // 画面上の要素を管理する配列
-    const MAX_ELEMENTS_ON_SCREEN = 200; // 同時表示数の上限 (視認性とパフォーマンスのため)
+    let elementSpawnIntervalId = null;
+    const activeElements = [];
+    let currentLevel = 1;
+    let correctAnswersInRow = 0;
 
-    // --- 初期化とUIアニメーション ---
-    function initUIAnimations() {
-        // タイトル文字アニメーションはCSSで定義済み
-        // サブタイトルと問題文の出現はCSSアニメーションで制御
-        problemText.style.opacity = '0'; // JSでリセット用
-        subTitle.style.opacity = '0'; // JSでリセット用
-        // 実行タイミングはCSSアニメーションの遅延に依存
+    // --- Initialization ---
+    function initGame() {
+        penaltyActive = false;
+        currentLevel = 1;
+        correctAnswersInRow = 0;
+
+        quizContainer.classList.remove('hidden');
+        problemText.style.animation = 'none'; // アニメーションリセット用
+        document.getElementById('sub-title').style.animation = 'none'; // 同上
+        document.getElementById('game-title').querySelectorAll('span').forEach(span => {
+            span.style.animation = 'none';
+        });
+
+        // 強制リフローを挟んでアニメーションを再トリガー
+        void quizContainer.offsetWidth;
+
+        problemText.style.animation = '';
+        document.getElementById('sub-title').style.animation = '';
+         document.getElementById('game-title').querySelectorAll('span').forEach(span => {
+            span.style.animation = '';
+        });
+
+
+        clearChaosArea();
+        if (elementSpawnIntervalId) {
+            clearInterval(elementSpawnIntervalId);
+            elementSpawnIntervalId = null;
+        }
+        generateProblem();
     }
 
-    // --- クイズロジック ---
-    function generateProblem() {
-        currentProblem.num1 = Math.floor(Math.random() * 90) + 10;
-        currentProblem.num2 = Math.floor(Math.random() * 90) + 10;
-        currentProblem.answer = currentProblem.num1 * currentProblem.num2;
+    function clearChaosArea() {
+        chaosContainer.innerHTML = '';
+        activeElements.length = 0;
+    }
 
-        // 問題文のアニメーションリセットと再開
+    // --- Problem Generation ---
+    function generateProblem() {
+        // アニメーションリセットと再トリガー
         problemText.style.animation = 'none';
-        void problemText.offsetWidth; // 強制リフロー
+        void problemText.offsetWidth;
         problemText.style.animation = '';
-        problemText.style.opacity = '0'; // アニメーション開始前の状態
-        problemText.textContent = `${currentProblem.num1} × ${currentProblem.num2} = ?`;
+        problemText.style.opacity = '0'; // 開始状態に戻す
+
+        let num1Digits = 1;
+        let num2Digits = 1;
+
+        for (let i = 2; i <= currentLevel; i++) {
+            if (i % 2 === 0) num2Digits++;
+            else num1Digits++;
+        }
+        num1Digits = Math.min(MAX_PRACTICAL_DIGITS, num1Digits);
+        num2Digits = Math.min(MAX_PRACTICAL_DIGITS, num2Digits);
+
+        currentProblem.num1 = getRandomBigIntByDigits(num1Digits);
+        currentProblem.num2 = getRandomBigIntByDigits(num2Digits);
+
+        if (num1Digits !== num2Digits && Math.random() < 0.5) {
+           [currentProblem.num1, currentProblem.num2] = [currentProblem.num2, currentProblem.num1];
+        }
+
+        currentProblem.answer = currentProblem.num1 * currentProblem.num2;
+        problemText.textContent = `${currentProblem.num1.toString()} × ${currentProblem.num2.toString()} = ?`;
 
         answerInput.value = '';
-        feedbackText.textContent = '';
+        feedbackText.textContent = ''; // フィードバックをクリア
         answerInput.focus();
+        // レベル表示はHTMLから削除されたので、ここでの更新は不要
     }
 
+    function getRandomBigIntByDigits(digits) {
+        if (digits <= 0) return 0n;
+        if (digits === 1) return BigInt(Math.floor(Math.random() * 9) + 1);
+
+        let randomNumStr = (Math.floor(Math.random() * 9) + 1).toString();
+        for (let i = 1; i < digits; i++) {
+            randomNumStr += Math.floor(Math.random() * 10).toString();
+        }
+        return BigInt(randomNumStr);
+    }
+
+    // --- Answer Checking ---
     function checkAnswer() {
         if (penaltyActive) return;
 
-        const userAnswer = parseInt(answerInput.value);
-        if (isNaN(userAnswer)) {
-            feedbackText.textContent = '有効な数値を入力せよ。';
-            feedbackText.style.color = 'var(--error-color)';
+        const userAnswerText = answerInput.value.trim();
+        if (userAnswerText === '') {
+            setFeedback('数値を入力せよ。', 'error');
+            return;
+        }
+
+        let userAnswer;
+        try {
+            userAnswer = BigInt(userAnswerText);
+        } catch (e) {
+            setFeedback('それは数値ではないようだ。', 'error');
             return;
         }
 
         if (userAnswer === currentProblem.answer) {
-            feedbackText.textContent = '正解。次へ。';
-            feedbackText.style.color = 'var(--success-color)';
-            // アニメーションを挟むならここに。今回は即時。
-            setTimeout(generateProblem, 300); // わずかなウェイトでフィードバックを見せる
+            setFeedback('正解。次なる試練へ。', 'success');
+            correctAnswersInRow++;
+
+            if (correctAnswersInRow >= CORRECT_ANSWERS_TO_LEVEL_UP) {
+                currentLevel++;
+                correctAnswersInRow = 0;
+                setFeedback(`適合完了。レベル ${currentLevel} に移行。`, 'success', true);
+                setTimeout(generateProblem, 1400); // 少し長めに表示
+            } else {
+                setTimeout(generateProblem, 450);
+            }
         } else {
-            feedbackText.textContent = `解は ${currentProblem.answer} 。…何故だ。🤡`;
-            feedbackText.style.color = 'var(--error-color)';
+            setFeedback(`不適合。解は ${currentProblem.answer.toString()} 。何故だ、何故間違える！`, 'error', true);
+            correctAnswersInRow = 0;
             triggerPenalty();
         }
     }
 
-    // --- ペナルティ（カオス）演出 ---
+    function setFeedback(message, type, isImportant = false) {
+        feedbackText.textContent = message;
+        feedbackText.style.color = `var(--${type}-color)`;
+        feedbackText.style.fontWeight = isImportant ? '700' : '500';
+        feedbackText.style.opacity = '0'; // 一旦消してアニメーション
+        void feedbackText.offsetWidth; // リフロー
+        feedbackText.style.transition = 'opacity 0.3s ease-in-out';
+        feedbackText.style.opacity = '0.9';
+    }
+
+    // --- Penalty (Chaos) Logic ---
     function triggerPenalty() {
         if (penaltyActive) return;
         penaltyActive = true;
-
         quizContainer.classList.add('hidden');
+        playAggressiveSoundScape(INCORRECT_SOUND_SOURCES.length * 2, 90); // 音の数を増やし、間隔を短く
 
-        // 激しいサウンドスケープを生成
-        playAggressiveSoundScape(5, 70); // 5つの音を70ms間隔で再生開始
+        const initialStoneBurst = 40;
+        const initialNandeyaBurst = 12;
 
-        // 初期バースト
-        for (let i = 0; i < 30; i++) { // 石は多めに、インパクト重視
-            createStoneElement();
-        }
-        for (let i = 0; i < 8; i++) { // 「なんでや。」は視認性重視で少なめ
-            createNandeyaElement();
-        }
+        for (let i = 0; i < initialStoneBurst; i++) createStoneElement();
+        for (let i = 0; i < initialNandeyaBurst; i++) createNandeyaElement();
 
-        // 継続的な要素生成
-        if (!elementSpawnInterval) {
-            elementSpawnInterval = setInterval(() => {
+        if (!elementSpawnIntervalId) {
+            elementSpawnIntervalId = setInterval(() => {
                 if (activeElements.length < MAX_ELEMENTS_ON_SCREEN) {
-                    if (Math.random() < 0.7) createStoneElement(); // 石の出現率高め
-                    if (Math.random() < 0.15) createNandeyaElement(); // 「なんでや。」は控えめに
+                    if (Math.random() < 0.8) createStoneElement(true); // 継続生成は少し違うアニメーションも
+                    if (Math.random() < 0.25) createNandeyaElement(true);
                 }
-                manageActiveElements(); // 古い要素を削除
-            }, 100); // 生成間隔
+                manageActiveElements();
+            }, ELEMENT_SPAWN_INTERVAL_MS);
         }
     }
 
@@ -109,129 +187,104 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < numberOfSounds; i++) {
             setTimeout(() => {
                 try {
-                    // 用意したサウンドソースからランダムに選択
-                    const randomSoundSrc = incorrectSoundSources[Math.floor(Math.random() * incorrectSoundSources.length)];
-                    const audio = new Audio(randomSoundSrc || incorrectSoundSources[0]); // フォールバック
-                    audio.volume = Math.random() * 0.4 + 0.6; // 0.6 〜 1.0 のランダムな音量
-                    
-                    // パンニング (左右の定位) もランダムに
-                    const panner = new AudioContext().createStereoPanner();
-                    const source = new AudioContext().createMediaElementSource(audio);
-                    source.connect(panner);
-                    panner.connect(new AudioContext().destination);
-                    panner.pan.value = Math.random() * 1.8 - 0.9; // -0.9 〜 0.9 (ほぼ左右いっぱい)
-
-
-                    audio.play().catch(e => console.warn("Sound playback failed:", e));
-                } catch (e) { console.error("AudioContext/Panner error:", e); /* Safariなど一部ブラウザでエラーになる可能性 */ }
+                    const soundSrc = INCORRECT_SOUND_SOURCES[Math.floor(Math.random() * INCORRECT_SOUND_SOURCES.length)];
+                    const audio = new Audio(soundSrc);
+                    audio.volume = Math.random() * 0.25 + 0.45; // BGMなので音量を少し抑えつつランダムに
+                    audio.play().catch(e => console.warn(`音声再生失敗 [${soundSrc}]:`, e.message));
+                } catch (e) { console.error("音声再生処理エラー:", e); }
             }, i * interval);
         }
     }
 
-
-    function createStoneElement() {
+    // --- Element Creation and Management ---
+    function createStoneElement(isContinuous = false) {
         const stone = document.createElement('img');
-        stone.src = stoneImageSrc;
+        stone.src = STONE_IMAGE_SRC;
         stone.classList.add('stone');
-
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        // CSS変数でアニメーションパラメータを渡す
-        stone.style.setProperty('--start-x', `${Math.random() * vw - vw / 2}px`); // 画面中央付近から広がる
-        stone.style.setProperty('--start-y', `${Math.random() * vh - vh / 2}px`);
-        stone.style.setProperty('--end-x', `${Math.random() * vw * 1.4 - vw * 0.2}px`); // 画面外にも飛んでいく
-        stone.style.setProperty('--end-y', `${Math.random() * vh * 1.4 - vh * 0.2}px`);
-        stone.style.setProperty('--end-scale', `${Math.random() * 1.5 + 0.5}`); // サイズ変化
-        stone.style.setProperty('--end-rotate', `${Math.random() * 1080 - 540}deg`); // 回転数
-        stone.style.setProperty('--end-opacity', `${Math.random() * 0.4 + 0.3}`); // 最終的な透明度
+        // アニメーションパラメータを調整し、より多彩な動きに
+        const randomRotationStart = Math.random() * 720 - 360;
+        const randomRotationEnd = Math.random() * (isContinuous ? 1080 : 1440) - (isContinuous ? 540 : 720);
 
-        // 初期位置は画面中央付近に設定 (CSSアニメーションの translate は相対的なので)
-        stone.style.left = `${vw/2}px`;
-        stone.style.top = `${vh/2}px`;
-
+        stone.style.setProperty('--start-x', `${Math.random() * vw * 0.5 - vw * 0.25}px`);
+        stone.style.setProperty('--start-y', `${Math.random() * vh * 0.5 - vh * 0.25}px`);
+        stone.style.setProperty('--start-rotate', `${randomRotationStart}deg`);
+        stone.style.setProperty('--end-x', `${Math.random() * vw * 1.8 - vw * 0.4}px`); // より画面外へ
+        stone.style.setProperty('--end-y', `${Math.random() * vh * 1.8 - vh * 0.4}px`);
+        stone.style.setProperty('--end-scale', `${Math.random() * 1.5 + (isContinuous ? 0.4 : 0.7)}`);
+        stone.style.setProperty('--end-rotate', `${randomRotationEnd}deg`);
+        stone.style.setProperty('--end-opacity', `${Math.random() * 0.2 + 0.35}`);
+        stone.style.left = `${vw/2 + (Math.random() - 0.5) * 50}px`; // 初期位置も少しばらつき
+        stone.style.top = `${vh/2 + (Math.random() - 0.5) * 50}px`;
 
         chaosContainer.appendChild(stone);
-        addElementToManager(stone, 1500); // 1.5秒後に消える
+        addElementToManager(stone, STONE_LIFESPAN_MS + Math.random() * 500); // 生存時間も少しランダムに
     }
 
-    function createNandeyaElement() {
+    function createNandeyaElement(isContinuous = false) {
         const nandeya = document.createElement('div');
-        nandeya.textContent = nandeyaTextContent;
+        nandeya.textContent = NANDEYA_TEXT_CONTENT;
         nandeya.classList.add('nandeya');
-
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        const baseFontSize = 3; // rem
-        const randomSizeFactor = Math.random() * 1.5 + 0.8; // 0.8x ~ 2.3x
+        const baseFontSize = 3.0; // rem
+        const randomSizeFactor = Math.random() * 1.0 + (isContinuous ? 0.6 : 0.8);
 
         nandeya.style.fontSize = `${baseFontSize * randomSizeFactor}rem`;
-
-        // アニメーションパラメータ
-        nandeya.style.setProperty('--n-start-x', `${Math.random() * vw - vw/2}px`);
-        nandeya.style.setProperty('--n-start-y', `${Math.random() * vh - vh/2}px`);
-        nandeya.style.setProperty('--n-end-x', `${Math.random() * vw - vw/2}px`); // 最終位置は中央付近に留まる感じ
-        nandeya.style.setProperty('--n-end-y', `${Math.random() * vh - vh/2}px`);
-        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.5 + 0.8}`);
-        nandeya.style.setProperty('--n-end-rotate', `${Math.random() * 60 - 30}deg`);
-        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.5 + 0.4}`);
-        nandeya.style.zIndex = `${Math.floor(Math.random() * 5)}`; // 重なり順
-
-        // 初期位置
-        nandeya.style.left = `${vw/2}px`;
-        nandeya.style.top = `${vh/2}px`;
+        nandeya.style.setProperty('--n-start-x', `${Math.random() * vw * 0.4 - vw * 0.2}px`);
+        nandeya.style.setProperty('--n-start-y', `${Math.random() * vh * 0.4 - vh * 0.2}px`);
+        nandeya.style.setProperty('--n-start-rotate-y', `${Math.random() * 120 - 60}deg`);
+        nandeya.style.setProperty('--n-end-x', `${Math.random() * vw * 0.7 - vw * 0.35}px`);
+        nandeya.style.setProperty('--n-end-y', `${Math.random() * vh * 0.7 - vh * 0.35}px`);
+        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.5 + 0.7}`);
+        nandeya.style.setProperty('--n-end-rotate-x', `${Math.random() * 50 - 25}deg`);
+        nandeya.style.setProperty('--n-end-rotate-y', `${Math.random() * (isContinuous ? 90 : 180) - (isContinuous ? 45 : 90)}deg`);
+        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.3 + 0.45}`);
+        nandeya.style.zIndex = `${Math.floor(Math.random() * 15)}`;
+        nandeya.style.left = `${vw/2 + (Math.random() - 0.5) * 80}px`;
+        nandeya.style.top = `${vh/2 + (Math.random() - 0.5) * 80}px`;
 
         chaosContainer.appendChild(nandeya);
-        addElementToManager(nandeya, 1200); // 1.2秒後に消える (石より少し早い)
+        addElementToManager(nandeya, NANDEYA_LIFESPAN_MS + Math.random() * 400);
     }
 
     function addElementToManager(element, lifespan) {
         activeElements.push(element);
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             if (element.parentElement) {
-                element.parentElement.removeChild(element);
+                element.remove(); // remove() の方がわずかに効率的
             }
             const index = activeElements.indexOf(element);
             if (index > -1) {
                 activeElements.splice(index, 1);
             }
         }, lifespan);
+        // (オプション) 要素にタイムアウトIDを関連付けて、クリア時にキャンセルできるようにする
+        // element.dataset.timeoutId = timeoutId;
     }
 
     function manageActiveElements() {
-        // MAX_ELEMENTS_ON_SCREEN を超えている場合、古いものから削除
-        // (addElementToManager の lifespan で自動削除されるので、この関数は積極的な削除用)
+        // 古い要素の削除はlifespanによる自動削除に任せるため、この関数は積極的な上限超過管理に限定
         while (activeElements.length > MAX_ELEMENTS_ON_SCREEN) {
-            const oldElement = activeElements.shift(); // 配列の先頭（一番古い）
+            const oldElement = activeElements.shift();
             if (oldElement && oldElement.parentElement) {
-                oldElement.parentElement.removeChild(oldElement);
+                // clearTimeout(oldElement.dataset.timeoutId); // ライフスパン前に削除する場合
+                oldElement.remove();
             }
         }
     }
 
-    // --- イベントリスナー ---
+    // --- Event Listeners ---
     submitButton.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
+            event.preventDefault();
             checkAnswer();
         }
     });
 
-    // --- 初期化 ---
-    function initGame() {
-        penaltyActive = false;
-        quizContainer.classList.remove('hidden');
-        // UIアニメーションの初期化
-        initUIAnimations();
-
-        chaosContainer.innerHTML = ''; // カオスエリアをクリア
-        activeElements.length = 0; // 管理配列もクリア
-        if (elementSpawnInterval) {
-            clearInterval(elementSpawnInterval);
-            elementSpawnInterval = null;
-        }
-        generateProblem();
-    }
-
+    // --- Start Game ---
     initGame();
 });
