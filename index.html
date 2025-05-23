@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>暗算game</title>
+    <title>NANDEYA? - The Cascade of Absurdity</title> {/* タイトルも少しそれっぽく */}
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    {/* Noto Sans JP のウェイトを複数読み込み */}
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    {/* アイコンフォントライブラリの例 (任意) */}
+    {/* <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> */}
 </head>
 <body>
-    <div id="quiz-container">
-        <h1>試練の計算</h1>
-        <p id="problem-text"></p>
-        <input type="number" id="answer-input" placeholder="答えを入力">
-        <button id="submit-answer">解答する</button>
-        <p id="feedback-text"></p>
+    <div id="main-container"> {/* 全体をラップするコンテナ */}
+        <div id="quiz-container">
+            <header>
+                <h1 id="game-title"><span>N</span><span>A</span><span>N</span><span>D</span><span>E</span><span>Y</span><span>A</span><span>?</span></h1>
+                <p id="sub-title">試される、その理。</p>
+            </header>
+            <div id="problem-area">
+                <p id="problem-text"></p>
+            </div>
+            <div id="input-area">
+                <input type="number" id="answer-input" placeholder="解を此処に">
+                <button id="submit-answer" aria-label="解答する">
+                    <span>応</span> {/* ボタンテキストも一工夫 */}
+                </button>
+            </div>
+            <p id="feedback-text"></p>
+        </div>
     </div>
 
-    <div class="container">
-        <div id="game-area">
-            </div>
+    <div id="chaos-container"> {/* 石や「なんでや。」はこちらに */}
+        {/* game-area は chaos-container に改名 */}
     </div>
 
     <script src="script.js"></script>
