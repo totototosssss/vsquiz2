@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Configuration ---
     const STONE_IMAGE_SRC = 'stone.png';
-    //const NANDEYA_TEXT_CONTENT = 'なんでや。';
-    const NANDEYA_TEXT_CONTENT = '相当偏差値の高い高校（身の丈に合ってない）に通っています。高三なのですが未だにアルファベットが読めないことやadhdっぽいことに悩んで親に土下座してwais受けさせてもらいました。知覚推理144言語理解142ワーキングメモリ130処理速度84でした。　総合は覚えてないですが多分139とかだったはずです。ウィスクの年齢なのにウェイス受けさせられた。なんでや';
+    const LONG_NANDEYA_TEXT_CONTENT = '相当偏差値の高い高校（身の丈に合ってない）に通っています。高三なのですが未だにアルファベットが読めないことやadhdっぽいことに悩んで親に土下座してwais受けさせてもらいました。知覚推理144言語理解142ワーキングメモリ130処理速度84でした。　総合は覚えてないですが多分139とかだったはずです。ウィスクの年齢なのにウェイス受けさせられた。なんでや';
+    let nandeyaPhrases = []; // 分割されたテキストを格納
+
     const INCORRECT_SOUND_SOURCES = [
         'maou_46_yoake_no_highway.mp3',
         'maou_bgm_cyber45.mp3',
@@ -18,10 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'maou_bgm_cyber45.mp3'
     ];
     const CORRECT_ANSWERS_TO_LEVEL_UP = 2;
-    const MAX_ELEMENTS_ON_SCREEN = 190;
+    const MAX_ELEMENTS_ON_SCREEN = 180;
     const ELEMENT_SPAWN_INTERVAL_MS = 110;
     const STONE_LIFESPAN_MS = 1800;
-    const NANDEYA_LIFESPAN_MS = 1600;
+    const NANDEYA_LIFESPAN_MS = 2200; // 長文なので少し長めに表示
     const MAX_PRACTICAL_DIGITS = 10;
 
     // --- Game State ---
@@ -32,11 +33,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLevel = 1;
     let correctAnswersInRow = 0;
 
+    // --- Text Processing ---
+    function prepareNandeyaPhrases() {
+        // 「。」で分割し、空でない文字列を配列に格納。各文の末尾に「。」を（あれば）保持。
+        // 長文の最後に「なんでや」が単独である場合も考慮。
+        const sentences = LONG_NANDEYA_TEXT_CONTENT.split('。');
+        nandeyaPhrases = [];
+        for (let i = 0; i < sentences.length; i++) {
+            let sentence = sentences[i].trim();
+            if (sentence.length === 0 && i === sentences.length -1 && sentences.length > 1) { // 最後の空要素（「。」で終わる場合）
+                continue;
+            }
+            if (i < sentences.length - 1 || LONG_NANDEYA_TEXT_CONTENT.endsWith('。')) { // 最後の要素でなく、かつ元文が「。」で終わるなら「。」をつける
+                if(sentence.length > 0 && !sentence.endsWith("なんでや")) sentence += '。';
+                else if (sentence.length > 0 && sentence.endsWith("なんでや") && sentence !== "なんでや") sentence += '。'; // 「〜なんでや。」の場合
+            }
+
+            if (sentence === "なんでや。" && nandeyaPhrases.length > 0 && nandeyaPhrases[nandeyaPhrases.length -1].endsWith("なんでや。")) {
+                 // 連続する「なんでや。」を避ける（分割の仕方による）
+            } else if (sentence.length > 0) {
+                 nandeyaPhrases.push(sentence);
+            }
+        }
+        // もし分割後何もなければデフォルト値
+        if (nandeyaPhrases.length === 0) {
+            nandeyaPhrases.push('なんでや。');
+        }
+        console.log("分割された「なんでや」フレーズ:", nandeyaPhrases);
+    }
+
+
     // --- Initialization ---
     function initGame() {
         penaltyActive = false;
         currentLevel = 1;
         correctAnswersInRow = 0;
+        prepareNandeyaPhrases(); // 「なんでや」テキストを準備
 
         quizContainer.classList.remove('hidden');
         problemText.style.animation = 'none';
@@ -95,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         answerInput.value = '';
         feedbackText.textContent = '';
-        feedbackText.classList.remove('visible'); // フィードバック表示をリセット
+        feedbackText.classList.remove('visible');
         answerInput.focus();
     }
 
@@ -151,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         feedbackText.textContent = message;
         feedbackText.style.color = `var(--${type}-color)`;
         feedbackText.style.fontWeight = isImportant ? '700' : '500';
-        feedbackText.classList.add('visible'); // アニメーションで表示
+        feedbackText.classList.add('visible');
     }
 
     // --- Penalty (Chaos) Logic ---
@@ -162,16 +194,22 @@ document.addEventListener('DOMContentLoaded', () => {
         playAggressiveSoundScape(INCORRECT_SOUND_SOURCES.length * 2, 90);
 
         const initialStoneBurst = 40;
-        const initialNandeyaBurst = 12;
+        const initialNandeyaBurst = nandeyaPhrases.length > 0 ? Math.min(15, nandeyaPhrases.length * 2) : 10; // 分割数に応じてバースト
 
         for (let i = 0; i < initialStoneBurst; i++) createStoneElement();
-        for (let i = 0; i < initialNandeyaBurst; i++) createNandeyaElement();
+        for (let i = 0; i < initialNandeyaBurst; i++) {
+            const phrase = nandeyaPhrases[Math.floor(Math.random() * nandeyaPhrases.length)];
+            createNandeyaElement(phrase);
+        }
 
         if (!elementSpawnIntervalId) {
             elementSpawnIntervalId = setInterval(() => {
                 if (activeElements.length < MAX_ELEMENTS_ON_SCREEN) {
                     if (Math.random() < 0.8) createStoneElement(true);
-                    if (Math.random() < 0.25) createNandeyaElement(true);
+                    if (Math.random() < 0.35 && nandeyaPhrases.length > 0) { // 出現率少し上げる
+                        const phrase = nandeyaPhrases[Math.floor(Math.random() * nandeyaPhrases.length)];
+                        createNandeyaElement(phrase, true);
+                    }
                 }
                 manageActiveElements();
             }, ELEMENT_SPAWN_INTERVAL_MS);
@@ -186,17 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Playing sound: ${soundSrc} (attempt ${i + 1}/${numberOfSoundsToPlay})`);
                 try {
                     const audio = new Audio(soundSrc);
-                    audio.volume = Math.random() * 0.3 + 0.6; // 音量を少し上げてやかましさを強調 (0.6 - 0.9)
+                    audio.volume = Math.random() * 0.3 + 0.6;
 
                     const playPromise = audio.play();
                     if (playPromise !== undefined) {
-                        playPromise.then(_ => {
-                            console.log(`Successfully played: ${soundSrc}`);
-                        })
-                        .catch(error => {
+                        playPromise.catch(error => {
                             console.error(`Error playing sound ${soundSrc} (Promise):`, error);
-                            // feedbackText.textContent = `音声再生エラー: ${error.name}`; // UIに表示も可能
-                            // feedbackText.classList.add('visible');
                         });
                     }
                 } catch (e) {
@@ -232,31 +265,37 @@ document.addEventListener('DOMContentLoaded', () => {
         addElementToManager(stone, STONE_LIFESPAN_MS + Math.random() * 500);
     }
 
-    function createNandeyaElement(isContinuous = false) {
+    function createNandeyaElement(textToShow = "なんでや。", isContinuous = false) { // デフォルトテキスト追加
         const nandeya = document.createElement('div');
-        nandeya.textContent = NANDEYA_TEXT_CONTENT;
+        nandeya.textContent = textToShow; // 引数で受け取ったテキストを表示
         nandeya.classList.add('nandeya');
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        const baseFontSize = 3.0;
-        const randomSizeFactor = Math.random() * 1.0 + (isContinuous ? 0.6 : 0.8);
+        // テキストの長さに応じてフォントサイズを少し調整（オプション）
+        let fontSizeFactor = 1.0;
+        if (textToShow.length > 15) fontSizeFactor = 0.8;
+        if (textToShow.length > 30) fontSizeFactor = 0.7;
+
+        const baseFontSize = 2.8 * fontSizeFactor; // rem
+        const randomSizeFactor = Math.random() * 0.8 + (isContinuous ? 0.5 : 0.7);
+
 
         nandeya.style.fontSize = `${baseFontSize * randomSizeFactor}rem`;
         nandeya.style.setProperty('--n-start-x', `${Math.random() * vw * 0.4 - vw * 0.2}px`);
         nandeya.style.setProperty('--n-start-y', `${Math.random() * vh * 0.4 - vh * 0.2}px`);
-        nandeya.style.setProperty('--n-start-rotate-y', `${Math.random() * 120 - 60}deg`);
+        nandeya.style.setProperty('--n-start-rotate-y', `${Math.random() * 100 - 50}deg`);
         nandeya.style.setProperty('--n-end-x', `${Math.random() * vw * 0.7 - vw * 0.35}px`);
         nandeya.style.setProperty('--n-end-y', `${Math.random() * vh * 0.7 - vh * 0.35}px`);
-        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.5 + 0.7}`);
-        nandeya.style.setProperty('--n-end-rotate-x', `${Math.random() * 50 - 25}deg`);
-        nandeya.style.setProperty('--n-end-rotate-y', `${Math.random() * (isContinuous ? 90 : 180) - (isContinuous ? 45 : 90)}deg`);
-        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.3 + 0.45}`);
-        nandeya.style.zIndex = `${Math.floor(Math.random() * 15)}`;
-        nandeya.style.left = `${vw/2 + (Math.random() - 0.5) * 80}px`;
-        nandeya.style.top = `${vh/2 + (Math.random() - 0.5) * 80}px`;
+        nandeya.style.setProperty('--n-end-scale', `${Math.random() * 0.4 + 0.6}`);
+        nandeya.style.setProperty('--n-end-rotate-x', `${Math.random() * 40 - 20}deg`);
+        nandeya.style.setProperty('--n-end-rotate-y', `${Math.random() * (isContinuous ? 70 : 150) - (isContinuous ? 35 : 75)}deg`);
+        nandeya.style.setProperty('--n-end-opacity', `${Math.random() * 0.3 + 0.55}`); // 少し不透明度を上げる
+        nandeya.style.zIndex = `${Math.floor(Math.random() * 20)}`; // Z-index範囲拡大
+        nandeya.style.left = `${vw/2 + (Math.random() - 0.5) * 100}px`; // 初期位置のばらつきを増やす
+        nandeya.style.top = `${vh/2 + (Math.random() - 0.5) * 100}px`;
 
         chaosContainer.appendChild(nandeya);
-        addElementToManager(nandeya, NANDEYA_LIFESPAN_MS + Math.random() * 400);
+        addElementToManager(nandeya, NANDEYA_LIFESPAN_MS + Math.random() * 600);
     }
 
     function addElementToManager(element, lifespan) {
