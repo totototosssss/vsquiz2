@@ -1,16 +1,17 @@
 :root {
-    --primary-color: #00ddff; /* サイバーな青緑 */
-    --primary-glow: rgba(0, 221, 255, 0.5);
-    --secondary-color: #ff00ff; /* マゼンタアクセント */
-    --secondary-glow: rgba(255, 0, 255, 0.3);
-    --background-color: #0a0a0f; /* 非常に暗い紺に近い黒 */
-    --surface-color: #14141c;  /* UI要素の背景 */
-    --text-color: #e0e0e0;
-    --text-muted-color: #888890;
-    --error-color: #ff4d4d;
-    --success-color: #4dff4d;
+    --primary-color: #1e90ff; /* ドジャーブルー - 信頼感と挑戦 */
+    --primary-glow: rgba(30, 144, 255, 0.5);
+    --secondary-color: #ff4500; /* オレンジレッド - 警告とエネルギー */
+    --secondary-glow: rgba(255, 69, 0, 0.4);
+    --background-color: #0d1117; /* GitHubダークのような深い背景 */
+    --surface-color: #161b22;
+    --text-color: #c9d1d9;     /* GitHubダークのテキストカラー */
+    --text-muted-color: #8b949e;
+    --error-color: #f85149;
+    --success-color: #56d364;
 
     --font-primary: 'Noto Sans JP', sans-serif;
+    --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1); /* Material Design風イージング */
 }
 
 * {
@@ -20,7 +21,7 @@
 }
 
 html {
-    font-size: 16px; /* ベースフォントサイズ */
+    font-size: 16px;
 }
 
 body {
@@ -31,10 +32,10 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden; /* 厳格に隠す */
+    overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    perspective: 1000px; /* 3D的な効果の基点 */
+    perspective: 1000px;
 }
 
 #main-container {
@@ -47,44 +48,44 @@ body {
 }
 
 #quiz-container {
-    background: linear-gradient(145deg, var(--surface-color), #1a1a24);
-    padding: 2.5rem 3rem; /* rem単位に変更 */
-    border-radius: 1rem; /* 大きめの角丸 */
-    box-shadow: 0 0 50px rgba(0,0,0,0.5),
-                0 0 1px 1px rgba(255,255,255,0.03) inset, /* 微細な内側ハイライト */
-                0 0 20px var(--primary-glow); /* 外側にぼんやり光る */
+    background: var(--surface-color);
+    padding: 3rem 3.5rem;
+    border-radius: 10px; /* 少しシャープな角丸 */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     text-align: center;
     z-index: 100;
-    transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1), transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: opacity 0.5s var(--transition-smooth), transform 0.5s var(--transition-smooth);
     width: 90%;
-    max-width: 500px;
-    border: 1px solid rgba(var(--primary-color-rgb, 0,221,255), 0.2); /* CSS変数でRGBを使えるように */
+    max-width: 480px; /* ややコンパクトに */
+    border: 1px solid #30363d; /* GitHubダークのボーダー */
 }
 
 #quiz-container.hidden {
     opacity: 0 !important;
-    transform: translateY(-30px) scale(0.95) !important; /* よりスムーズな消え方 */
+    transform: translateY(-20px) scale(0.98) !important;
     pointer-events: none !important;
 }
 
-/* タイトルアニメーション */
+#quiz-container header {
+    margin-bottom: 2.5rem;
+}
+
 #game-title {
-    font-size: 3.5rem;
-    font-weight: 900; /* Black */
+    font-size: 3.2rem; /* CHALLENGEに合わせて調整 */
+    font-weight: 900;
     color: var(--primary-color);
     margin-bottom: 0.5rem;
-    letter-spacing: -2px;
-    display: flex; /* 文字を横並びに */
+    letter-spacing: 0.05em; /* 文字間を少し空ける */
+    display: flex;
     justify-content: center;
-    text-shadow: 0 0 5px var(--primary-glow), 0 0 10px var(--primary-glow);
+    text-shadow: 0 0 10px var(--primary-glow), 0 0 15px var(--primary-color);
 }
 #game-title span {
     display: inline-block;
     opacity: 0;
-    transform: translateY(-20px);
-    animation: letterEntrance 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    transform: translateY(-20px) scale(0.9);
+    animation: titleLetterEntrance 0.5s var(--transition-smooth) forwards;
 }
-/* 各文字の出現タイミングをずらす */
 #game-title span:nth-child(1) { animation-delay: 0.05s; }
 #game-title span:nth-child(2) { animation-delay: 0.1s; }
 #game-title span:nth-child(3) { animation-delay: 0.15s; }
@@ -92,43 +93,44 @@ body {
 #game-title span:nth-child(5) { animation-delay: 0.25s; }
 #game-title span:nth-child(6) { animation-delay: 0.3s; }
 #game-title span:nth-child(7) { animation-delay: 0.35s; }
+#game-title span:nth-child(8) { animation-delay: 0.4s; }
+#game-title span:nth-child(9) { animation-delay: 0.45s; }
 
 
-@keyframes letterEntrance {
+@keyframes titleLetterEntrance {
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
-
 #sub-title {
     font-size: 1rem;
-    font-weight: 300; /* Light */
+    font-weight: 400;
     color: var(--text-muted-color);
-    margin-bottom: 2.5rem;
-    letter-spacing: 1px;
+    margin-bottom: 0; /* ヘッダーのマージンで調整 */
+    letter-spacing: 0.5px;
     opacity: 0;
-    animation: fadeIn 1s ease-out 0.5s forwards; /* タイトルの後に出現 */
+    animation: fadeInGeneral 1s ease-out 0.7s forwards;
 }
 
 #problem-area {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 #problem-text {
-    font-size: 3.8rem; /* さらに大きく */
-    font-weight: 700; /* Bold */
-    color: #fff;
-    letter-spacing: 2px;
+    font-size: 3.5rem; /* 少しだけコンパクトに */
+    font-weight: 700;
+    color: #fff; /* 問題ははっきりと白 */
+    letter-spacing: 1px;
     padding: 1rem 0;
-    line-height: 1.2;
+    line-height: 1.3;
     opacity: 0;
-    transform: scale(0.9);
-    animation: problemAppear 0.5s cubic-bezier(0.25, 1, 0.5, 1) 0.8s forwards; /* アニメーションで出現 */
+    transform: scale(0.98);
+    animation: problemTextAppear 0.6s var(--transition-smooth) 1s forwards;
 }
 
-@keyframes problemAppear {
+@keyframes problemTextAppear {
     to {
         opacity: 1;
         transform: scale(1);
@@ -137,144 +139,44 @@ body {
 
 #input-area {
     display: flex;
-    justify-content: space-between;
+    gap: 0.8rem; /* 要素間の隙間 */
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 #answer-input {
     font-family: var(--font-primary);
-    padding: 0.9rem 1.2rem;
-    font-size: 1.5rem; /* 少し大きく */
+    padding: 0.9rem 1.1rem;
+    font-size: 1.4rem;
     font-weight: 500;
-    border: 2px solid rgba(var(--primary-color-rgb, 0,221,255), 0.3);
-    background-color: rgba(0,0,0,0.2);
+    border: 1px solid #30363d;
+    background-color: var(--background-color); /* 背景に合わせる */
     color: var(--text-color);
-    border-radius: 0.5rem;
+    border-radius: 6px; /* GitHub風角丸 */
     text-align: center;
-    width: calc(70% - 0.5rem); /* 幅調整 */
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    caret-color: var(--primary-color); /* カーソルの色 */
+    flex-grow: 1; /* 幅を柔軟に */
+    transition: all 0.25s var(--transition-smooth);
+    caret-color: var(--primary-color);
 }
-
 #answer-input::placeholder {
     color: var(--text-muted-color);
-    font-weight: 300;
+    font-weight: 400;
+    opacity: 0.8;
 }
-
 #answer-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    background-color: rgba(0,0,0,0.3);
-    box-shadow: 0 0 15px var(--primary-glow);
+    background-color: var(--surface-color);
+    box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.2); /* フォーカスリング */
 }
 
 #submit-answer {
     font-family: var(--font-primary);
-    padding: 0.9rem 0; /* 幅いっぱいにするので左右padding不要 */
-    font-size: 1.5rem;
-    background: linear-gradient(145deg, var(--primary-color), #00b8d4);
-    color: var(--background-color);
-    border: none;
-    border-radius: 0.5rem;
+    padding: 0.9rem 1.5rem; /* 幅はテキストに合わせる */
+    font-size: 1.4rem;
+    background-color: #238636; /* GitHubの緑ボタン */
+    color: #ffffff;
+    border: 1px solid rgba(240, 246, 252, 0.1);
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: 700;
-    width: 30%;
-    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-}
-#submit-answer span {
-    display: block;
-    transition: transform 0.2s ease;
-}
-
-#submit-answer:hover {
-    background: linear-gradient(145deg, #00b8d4, var(--primary-color));
-    box-shadow: 0 0 20px var(--primary-glow);
-}
-#submit-answer:active span {
-    transform: scale(0.92);
-}
-
-#feedback-text {
-    margin-top: 1.5rem;
-    font-size: 1.1rem;
-    min-height: 1.8em; /* 高さを確保 */
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    transition: color 0.3s ease;
-}
-
-/* --- カオス演出エリア --- */
-#chaos-container {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    pointer-events: none; /* 通常時は操作不可 */
-    z-index: 10; /* クイズよりは下 */
-}
-
-.stone {
-    position: absolute;
-    width: 50px; /* 少し大きく */
-    height: auto;
-    user-select: none;
-    opacity: 0;
-    filter: drop-shadow(0 0 5px var(--secondary-glow)); /* 石にもグロー */
-    /* アニメーションはJSで動的に設定する方が柔軟性が高いが、CSSでも複雑なものが可能 */
-    animation: stoneFallAndSpin 1.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
-}
-
-@keyframes stoneFallAndSpin {
-    0% {
-        opacity: 0;
-        transform: translate(var(--start-x), var(--start-y)) scale(0.1) rotate(0deg);
-    }
-    30% {
-        opacity: 0.8;
-    }
-    100% {
-        opacity: var(--end-opacity, 0.6); /* JSから最終的な透明度を制御可能に */
-        transform: translate(var(--end-x), var(--end-y)) scale(var(--end-scale, 1)) rotate(var(--end-rotate, 720deg));
-    }
-}
-
-
-.nandeya {
-    position: absolute;
-    font-family: var(--font-primary);
-    font-weight: 900; /* Blackでインパクト大 */
-    color: var(--text-color); /* ベースは白っぽく */
-    opacity: 0; /* 初期状態 */
-    user-select: none;
-    text-shadow: 0 0 5px var(--primary-glow), 0 0 10px var(--secondary-glow); /* 2色グロー */
-    letter-spacing: -1px; /* 少し詰める */
-    white-space: nowrap;
-    /* アニメーションの基本形 */
-    animation: nandeyaSwirl 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    will-change: transform, opacity; /* アニメーションのヒント */
-}
-
-@keyframes nandeyaSwirl {
-    0% {
-        opacity: 0;
-        transform: translate(var(--n-start-x), var(--n-start-y)) scale(0.2) rotate(-45deg);
-        filter: blur(5px);
-    }
-    50% {
-        opacity: 0.8;
-        filter: blur(0);
-    }
-    100% {
-        opacity: var(--n-end-opacity, 0.7);
-        transform: translate(var(--n-end-x), var(--n-end-y)) scale(var(--n-end-scale,1)) rotate(var(--n-end-rotate, 0deg));
-        filter: blur(0);
-    }
-}
-
-/* フェードイン共通（汎用） */
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
+    font-weight:
