@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>無限石増殖</title>
- <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>なんでや。無限石増殖</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
- <div class="container">
-  <div id="game-area"></div>
- </div>
- <script src="script.js"></script>
+    <div id="quiz-container">
+        <h1>試練の計算</h1>
+        <p id="problem-text"></p>
+        <input type="number" id="answer-input" placeholder="答えを入力">
+        <button id="submit-answer">解答する</button>
+        <p id="feedback-text"></p>
+    </div>
+
+    <div class="container">
+        <div id="game-area">
+            </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
