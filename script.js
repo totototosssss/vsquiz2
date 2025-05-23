@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const incorrectSoundSources = [
         'maou_46_yoake_no_highway.mp3', // 重低音の爆発音
         'maou_46_yoake_no_highway.mp3',// グリッチノイズ
-        'maou_46_yoake_no_highway.mp3',// 甲高い叫び声風 (なんでやボイスでも可)
-        'maou_46_yoake_no_highway.mp3' // 金属的な衝撃音
+        'maou_bgm_cyber45.mp3',// 甲高い叫び声風 (なんでやボイスでも可)
+        'maou_bgm_cyber45.mp3' // 金属的な衝撃音
     ];
     // ↑これらのファイルを用意するか、既存のincorrect_sound.mp3を複数回使うなどで調整
 
